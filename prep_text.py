@@ -55,10 +55,14 @@ def iter_comments(loc):
 
 def iter_articles(in_loc):
     for fn in os.listdir(in_loc):
-        with bz2.BZ2File(path.join(in_loc, fn)) as file:
-            data = file.read()
-            text = ujson.loads(data.decode('utf-8'))['all_auto']['text']
+        try:
+            with bz2.BZ2File(path.join(in_loc, fn)) as file:
+                data = file.read()
+                text = ujson.loads(data.decode('utf-8'))['all_auto']['text']
             yield text
+        except:
+            print("Corrupt archive: %s", fn)
+            continue
 
 
 pre_format_re = re.compile(r'^[\`\*\~]')
@@ -139,14 +143,14 @@ def represent_word(word):
     load_parses=("Load parses from binary", "flag", "b"),
     load_articles=("Load articles from binary", "flag", "a"),
 )
-def main(in_loc, out_dir, n_workers=4, load_parses=False, load_articles=False):
+def main(in_loc, out_dir, n_workers=24, load_parses=False, load_articles=False):
     if not path.exists(out_dir):
         path.join(out_dir)
     if load_parses:
         jobs = [path.join(in_loc, fn) for fn in os.listdir(in_loc)]
         do_work = load_and_transform
     elif load_articles:
-        jobs = partition(20, iter_articles(in_loc))
+        jobs = partition(1403, iter_articles(in_loc))
         do_work = parse_and_transform
     else:
         jobs = partition(200000, iter_comments(in_loc))
